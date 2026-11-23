@@ -1,0 +1,852 @@
+﻿@page "/about"
+@rendermode InteractiveServer
+
+<div class="about-container">
+    <!-- Hero секция -->
+    <div class="about-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">О нашей <span class="gradient-text">студии</span></h1>
+            <p class="hero-description">Два творческих сердца, одна цель — создавать контент, который вдохновляет</p>
+        </div>
+    </div>
+
+    <div class="about-content">
+        <!-- Общий рассказ о проекте -->
+        <div class="project-story">
+            <div class="story-icon">🌟</div>
+            <h2>Наша история</h2>
+            <div class="story-text">
+                @if (isEditing)
+                {
+                    <textarea @bind="projectDescription" class="edit-textarea"></textarea>
+                    <div class="edit-actions">
+                        <button class="btn-save" @onclick="SaveProjectDescription">Сохранить</button>
+                        <button class="btn-cancel" @onclick="CancelEdit">Отмена</button>
+                    </div>
+                }
+                else
+                {
+                    <p>@projectDescription</p>
+                    @if (isAdmin)
+                    {
+                        <button class="btn-edit" @onclick="StartEdit">✎ Редактировать</button>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Карточки с историями -->
+        <div class="stories-grid">
+            <!-- История Арсения -->
+            <div class="story-card brother-card">
+                <div class="card-header">
+                    <div class="avatar">
+                        <div class="avatar-icon">🎙️</div>
+                        <div class="avatar-status online"></div>
+                    </div>
+                    <div class="person-info">
+                        <h3 class="person-name">Арсений</h3>
+                        <p class="person-role">Звукорежиссёр & Копирайтер</p>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    @if (isBrotherEditing)
+                    {
+                        <textarea @bind="brotherDescription" class="edit-textarea"></textarea>
+                        <div class="edit-actions">
+                            <button class="btn-save" @onclick="SaveBrotherDescription">Сохранить</button>
+                            <button class="btn-cancel" @onclick="CancelBrotherEdit">Отмена</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="quote-icon">"</div>
+                        <p class="story-text-full">@brotherDescription</p>
+                        <div class="person-quote-footer">
+                            <span class="signature">— Арсений</span>
+                            @if (isAdmin)
+                            {
+                                <button class="btn-edit-small" @onclick="StartBrotherEdit">✎</button>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <div class="card-footer">
+                    <div class="tag">🎧 Звук</div>
+                    <div class="tag">✍️ Сценарии</div>
+                    <div class="tag">🌐 Локализация</div>
+                </div>
+            </div>
+
+            <!-- История Ирины -->
+            <div class="story-card sister-card">
+                <div class="card-header">
+                    <div class="avatar">
+                        <div class="avatar-icon">🎨</div>
+                        <div class="avatar-status online"></div>
+                    </div>
+                    <div class="person-info">
+                        <h3 class="person-name">Ирина</h3>
+                        <p class="person-role">Дизайнер & Аниматор</p>
+                    </div>
+                </div>
+                
+                <div class="card-content">
+                    @if (isSisterEditing)
+                    {
+                        <textarea @bind="sisterDescription" class="edit-textarea"></textarea>
+                        <div class="edit-actions">
+                            <button class="btn-save" @onclick="SaveSisterDescription">Сохранить</button>
+                            <button class="btn-cancel" @onclick="CancelSisterEdit">Отмена</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="quote-icon">"</div>
+                        <p class="story-text-full">@sisterDescription</p>
+                        <div class="person-quote-footer">
+                            <span class="signature">— Ирина</span>
+                            @if (isAdmin)
+                            {
+                                <button class="btn-edit-small" @onclick="StartSisterEdit">✎</button>
+                            }
+                        </div>
+                    }
+                </div>
+                
+                <div class="card-footer">
+                    <div class="tag">🎨 Моушн-дизайн</div>
+                    <div class="tag">✨ Морфинг</div>
+                    <div class="tag">🎬 Видеомонтаж</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Контакты и соцсети -->
+        <div id="contacts" class="contact-section">
+            <h2 class="section-title">Свяжитесь с нами</h2>
+            <p class="section-subtitle">Мы всегда на связи и готовы ответить на ваши вопросы</p>
+            
+            <div class="contact-grid">
+                <!-- Контактная информация -->
+                <div class="contact-info">
+                    <div class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Email</div>
+                            <a href="mailto:hello@creativeduo.ru" class="contact-value">hello@creativeduo.ru</a>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">📱</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Telegram</div>
+                            <a href="https://t.me/creativeduo" target="_blank" class="contact-value">creativeduo</a>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">📞</div>
+                        <div class="contact-details">
+                            <div class="contact-label">Телефон</div>
+                            <a href="tel:+79001234567" class="contact-value">+7 (927) 218-88-60</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Социальные сети -->
+                <div class="social-links">
+                    <div class="social-item">
+                        <a href="https://instagram.com/creativeduo" target="_blank" class="social-link instagram">
+                            <div class="social-icon">📷</div>
+                            <div class="social-info">
+                                <div class="social-name">Instagram</div>
+                                <div class="social-handle">creativeduo</div>
+                            </div>
+                            <div class="social-arrow">→</div>
+                        </a>
+                    </div>
+                    
+                    <div class="social-item">
+                        <a href="https://youtube.com/creativeduo" target="_blank" class="social-link youtube">
+                            <div class="social-icon">▶️</div>
+                            <div class="social-info">
+                                <div class="social-name">YouTube</div>
+                                <div class="social-handle">Creative Duo Studio</div>
+                            </div>
+                            <div class="social-arrow">→</div>
+                        </a>
+                    </div>
+                    
+                    <div class="social-item">
+                        <a href="https://t.me/creativeduo_channel" target="_blank" class="social-link telegram">
+                            <div class="social-icon">📨</div>
+                            <div class="social-info">
+                                <div class="social-name">Telegram</div>
+                                <div class="social-handle">Канал студии</div>
+                            </div>
+                            <div class="social-arrow">→</div>
+                        </a>
+                    </div>
+                    
+                    <div class="social-item">
+                        <a href="https://vk.com/creativeduo" target="_blank" class="social-link vk">
+                            <div class="social-icon">📱</div>
+                            <div class="social-info">
+                                <div class="social-name">VK</div>
+                                <div class="social-handle">Creative Duo</div>
+                            </div>
+                            <div class="social-arrow">→</div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Быстрая связь -->
+            <div class="quick-contact">
+                <div class="quick-contact-text">
+                    <span class="quick-icon">⚡</span>
+                    <span>Нужен быстрый ответ?</span>
+                </div>
+                <button class="quick-contact-btn" @onclick="OpenChat">
+                    Написать в Telegram
+                </button>
+            </div>
+        </div>
+        
+        <!-- Дополнительная информация -->
+        <div class="fun-facts">
+            <div class="fact-item">
+                <div class="fact-number">150+</div>
+                <div class="fact-text">Выполненных проектов</div>
+            </div>
+            <div class="fact-item">
+                <div class="fact-number">50+</div>
+                <div class="fact-text">Довольных клиентов</div>
+            </div>
+            <div class="fact-item">
+                <div class="fact-number">4.9</div>
+                <div class="fact-text">Средняя оценка</div>
+            </div>
+            <div class="fact-item">
+                <div class="fact-number">24/7</div>
+                <div class="fact-text">На связи</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .about-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Hero секция */
+    .about-hero {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 100px 20px 60px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 20px;
+        font-weight: 700;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #FFD700, #FF69B4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        animation: fadeInUp 0.8s ease;
+    }
+
+    /* Основной контент */
+    .about-content {
+        max-width: 1200px;
+        margin: -40px auto 0;
+        padding: 0 20px 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* История проекта */
+    .project-story {
+        background: white;
+        border-radius: 30px;
+        padding: 40px;
+        margin-bottom: 40px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .project-story:hover {
+        transform: translateY(-5px);
+    }
+
+    .story-icon {
+        font-size: 3rem;
+        margin-bottom: 20px;
+    }
+
+    .project-story h2 {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 20px;
+    }
+
+    .story-text {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #666;
+        position: relative;
+    }
+
+    /* Карточки историй */
+    .stories-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 30px;
+        margin-bottom: 60px;
+    }
+
+    .story-card {
+        background: white;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .story-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 30px 50px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-header {
+        padding: 30px 30px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .avatar {
+        position: relative;
+    }
+
+    .avatar-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+    }
+
+    .avatar-status {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 15px;
+        height: 15px;
+        background: #4caf50;
+        border-radius: 50%;
+        border: 2px solid white;
+    }
+
+    .person-info {
+        flex: 1;
+    }
+
+    .person-name {
+        font-size: 1.5rem;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .person-role {
+        color: #667eea;
+        font-size: 0.9rem;
+    }
+
+    .card-content {
+        padding: 30px;
+        position: relative;
+    }
+
+    .quote-icon {
+        font-size: 3rem;
+        color: #667eea;
+        opacity: 0.3;
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        font-family: serif;
+    }
+
+    .story-text-full {
+        font-size: 1rem;
+        line-height: 1.8;
+        color: #666;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 1;
+        padding-left: 20px;
+    }
+
+    .person-quote-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+    }
+
+    .signature {
+        font-style: italic;
+        color: #999;
+        font-size: 0.9rem;
+    }
+
+    .card-footer {
+        padding: 20px 30px;
+        background: #f8f9fa;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .tag {
+        background: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        color: #667eea;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Контактная секция */
+    .contact-section {
+        background: white;
+        border-radius: 30px;
+        padding: 50px;
+        margin-bottom: 40px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .section-subtitle {
+        color: #666;
+        margin-bottom: 40px;
+        font-size: 1rem;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 40px;
+        text-align: left;
+    }
+
+    .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .contact-item:hover {
+        transform: translateX(10px);
+        background: #f0f3ff;
+    }
+
+    .contact-icon {
+        font-size: 2rem;
+        min-width: 50px;
+    }
+
+    .contact-details {
+        flex: 1;
+    }
+
+    .contact-label {
+        font-size: 0.8rem;
+        color: #999;
+        margin-bottom: 5px;
+    }
+
+    .contact-value {
+        font-size: 1rem;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+
+    .contact-value:hover {
+        color: #764ba2;
+    }
+
+    .social-links {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .social-item {
+        width: 100%;
+    }
+
+    .social-link {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        color: #333;
+    }
+
+    .social-link::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .social-link:hover::before {
+        left: 100%;
+    }
+
+    .social-link:hover {
+        transform: translateX(10px);
+    }
+
+    .instagram:hover {
+        background: linear-gradient(135deg, #feda77, #d62976, #962fbf);
+        color: white;
+    }
+
+    .youtube:hover {
+        background: #ff0000;
+        color: white;
+    }
+
+    .telegram:hover {
+        background: #0088cc;
+        color: white;
+    }
+
+    .vk:hover {
+        background: #4c75a3;
+        color: white;
+    }
+
+    .social-icon {
+        font-size: 1.8rem;
+        min-width: 40px;
+    }
+
+    .social-info {
+        flex: 1;
+    }
+
+    .social-name {
+        font-weight: 600;
+        margin-bottom: 3px;
+        color: inherit;
+    }
+
+    .social-handle {
+        font-size: 0.8rem;
+        color: inherit;
+        opacity: 0.8;
+    }
+
+    .social-arrow {
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+    }
+
+    .social-link:hover .social-arrow {
+        transform: translateX(5px);
+    }
+
+    .quick-contact {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 20px;
+        padding: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .quick-contact-text {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .quick-icon {
+        font-size: 1.5rem;
+        animation: pulse 1.5s ease infinite;
+    }
+
+    .quick-contact-btn {
+        background: white;
+        color: #667eea;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 50px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .quick-contact-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Факты */
+    .fun-facts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+    }
+
+    .fact-item {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .fact-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .fact-number {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 10px;
+    }
+
+    .fact-text {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    /* Редактирование */
+    .edit-textarea {
+        width: 100%;
+        min-height: 150px;
+        padding: 15px;
+        border: 2px solid #667eea;
+        border-radius: 15px;
+        font-size: 1rem;
+        font-family: inherit;
+        resize: vertical;
+    }
+
+    .edit-actions {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-save, .btn-cancel, .btn-edit, .btn-edit-small {
+        padding: 8px 20px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-save {
+        background: #4caf50;
+        color: white;
+    }
+
+    .btn-cancel {
+        background: #f44336;
+        color: white;
+    }
+
+    .btn-edit {
+        background: #667eea;
+        color: white;
+        margin-top: 15px;
+    }
+
+    .btn-edit-small {
+        background: #667eea;
+        color: white;
+        padding: 5px 12px;
+        font-size: 0.8rem;
+    }
+
+    .btn-save:hover, .btn-cancel:hover, .btn-edit:hover, .btn-edit-small:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Анимации */
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.1);
+        }
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .stories-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .contact-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .fun-facts {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .quick-contact {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .contact-section {
+            padding: 30px;
+        }
+    }
+</style>
+
+@code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    private string projectDescription = "Мы — Creative Duo Studio, команда из двух творческих людей: Арсения и Ирины. Наш путь начался с общей мечты — создавать контент, который не просто смотрят, а которым восхищаются. Мы объединили наши таланты, чтобы предлагать клиентам полный цикл производства медиаконтента: от идеи до финального монтажа. Каждый проект для нас — это возможность сделать что-то уникальное и оставить след в сердцах зрителей.";
+    
+    private string brotherDescription = "Я, честно говоря, не знаю человека более тщательного, чем она. Как-то прихожу к ней в комнату, а она уже пятый час сидит за работой, которая итак выглядит офигенно. Ее слоган это однозначно: можно сделать лучше. Я рад, что нам удалось реализовать общий проект, ведь работать вдвоем и добиваться добросовестной работы людей вдохновляет меня";
+    
+    private string sisterDescription = "Знаете, что меня больше всего вдохновляет в работе с братом? Его принципиальность. Арсений полностью отказался от использования нейросетей в своей работе. Каждое слово в сценарии выверено, каждый звук обработан вручную. Это редкость в наше время. Он показывает, что качество не может быть автоматическим — оно требует души. Я так же подхожу к своей работе: каждая анимация, каждый переход создаются вручную, с любовью и вниманием к деталям. Мы не гонимся за количеством, мы создаем качество, которым гордимся.";
+    
+    private bool isEditing = false;
+    private bool isBrotherEditing = false;
+    private bool isSisterEditing = false;
+    private bool isAdmin = true; // В реальном проекте это должно определяться через авторизацию
+
+    private void StartEdit() => isEditing = true;
+    private void CancelEdit() => isEditing = false;
+    private void SaveProjectDescription() => isEditing = false;
+    
+    private void StartBrotherEdit() => isBrotherEditing = true;
+    private void CancelBrotherEdit() => isBrotherEditing = false;
+    private void SaveBrotherDescription() => isBrotherEditing = false;
+    
+    private void StartSisterEdit() => isSisterEditing = true;
+    private void CancelSisterEdit() => isSisterEditing = false;
+    private void SaveSisterDescription() => isSisterEditing = false;
+    
+    private void OpenChat()
+    {
+        NavigationManager.NavigateTo("https://t.me/creativeduo");
+    }
+}

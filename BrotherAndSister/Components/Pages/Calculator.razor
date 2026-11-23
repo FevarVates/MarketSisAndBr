@@ -1,0 +1,830 @@
+﻿@page "/calculator"
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+<div class="calculator-container">
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">Калькулятор <span class="gradient-text">медиа-проекта</span></h1>
+            <p class="hero-description">Ответьте на несколько вопросов, и мы рассчитаем стоимость вашего проекта</p>
+        </div>
+    </div>
+
+    <div class="calculator-main">
+        <div class="progress-section">
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: @(CurrentProgress)%"></div>
+            </div>
+            <div class="progress-steps">
+                <span>Шаг @(CurrentQuestionIndex + 1) из @questions.Count</span>
+                <span class="progress-percent">@CurrentProgress%</span>
+            </div>
+        </div>
+
+        @if (CurrentQuestion != null)
+        {
+            <div class="question-card">
+                <div class="question-header">
+                    <div class="question-icon">@CurrentQuestion.Icon</div>
+                    <h2 class="question-title">@CurrentQuestion.Title</h2>
+                </div>
+                <p class="question-description">@CurrentQuestion.Description</p>
+                
+                @if (CurrentQuestion.AllowMultiple)
+                {
+                    <div class="multiple-hint">✓ Можно выбрать несколько вариантов</div>
+                }
+
+                <div class="options-container">
+                    @foreach (var option in CurrentQuestion.Options)
+                    {
+                        <div class="option-item @(IsOptionSelected(option) ? "selected" : "")"
+                             @onclick="() => SelectOption(option)">
+                            <div class="option-content">
+                                <div class="option-icon">@option.Icon</div>
+                                <div class="option-info">
+                                    <div class="option-name">@option.Name</div>
+                                    <div class="option-price">@FormatPrice(option.Price)</div>
+                                    <div class="option-description">@option.Description</div>
+                                </div>
+                                <div class="option-check">
+                                    @if (IsOptionSelected(option))
+                                    {
+                                        <span class="check-mark">✓</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div class="navigation-buttons">
+            <button class="nav-btn prev-btn" @onclick="PreviousQuestion" disabled="@(CurrentQuestionIndex == 0)">
+                ← Назад
+            </button>
+            <button class="nav-btn next-btn" @onclick="NextQuestion">
+                @if (CurrentQuestionIndex == questions.Count - 1)
+                {
+                    <span>Рассчитать →</span>
+                }
+                else
+                {
+                    <span>Далее →</span>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (showResults)
+    {
+        <div class="results-overlay">
+            <div class="results-card">
+                <div class="results-header">
+                    <h2 class="results-title">Расчет стоимости</h2>
+                    <div class="close-btn" @onclick="CloseResults">✕</div>
+                </div>
+
+                <div class="total-price-section">
+                    <div class="total-label">Итого стоимость проекта</div>
+                    <div class="total-price">@FormatPrice(TotalPrice)</div>
+                    <div class="total-note">*Окончательная стоимость может отличаться после консультации</div>
+                </div>
+
+                <div class="details-section">
+                    <h3>Выбранные услуги:</h3>
+                    <div class="services-list">
+                        @foreach (var selection in allSelectedOptions)
+                        {
+                            <div class="service-item">
+                                <span class="service-category">@selection.QuestionTitle:</span>
+                                <div class="service-options">
+                                    @foreach (var option in selection.SelectedOptions)
+                                    {
+                                        <div class="service-option-item">
+                                            <span class="service-name">@option.Name</span>
+                                            <span class="service-price">@FormatPrice(option.Price)</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="contact-section">
+                    <p class="contact-text">Готовы начать проект?</p>
+                    <div class="contact-buttons">
+                        <a href="/About#contacts" class="contact-btn primary">Связаться с нами</a>
+                        <button class="contact-btn secondary" @onclick="ResetCalculator">Новый расчет</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .calculator-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .hero-section {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 60px 20px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 20px;
+        font-weight: 700;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #FFD700, #FF69B4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        animation: fadeInUp 0.8s ease;
+    }
+
+    .calculator-main {
+        max-width: 800px;
+        margin: -40px auto 0;
+        padding: 0 20px 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .progress-section {
+        background: white;
+        border-radius: 20px;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .progress-bar-container {
+        background: #e0e0e0;
+        border-radius: 10px;
+        height: 8px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        height: 100%;
+        transition: width 0.5s ease;
+        border-radius: 10px;
+    }
+
+    .progress-steps {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .progress-percent {
+        font-weight: 600;
+        color: #667eea;
+    }
+
+    .question-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        transition: transform 0.3s ease;
+    }
+
+    .question-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .question-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .question-icon {
+        font-size: 2.5rem;
+    }
+
+    .question-title {
+        font-size: 1.8rem;
+        color: #333;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .question-description {
+        color: #666;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+
+    .multiple-hint {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea20, #764ba220);
+        color: #667eea;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+
+    .options-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .option-item {
+        background: #f8f9fa;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 15px 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .option-item:hover {
+        transform: translateX(5px);
+        border-color: #667eea;
+        background: #f0f3ff;
+    }
+
+    .option-item.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, #f0f3ff 0%, #e9ecff 100%);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .option-content {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .option-icon {
+        font-size: 1.8rem;
+        min-width: 40px;
+    }
+
+    .option-info {
+        flex: 1;
+    }
+
+    .option-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .option-price {
+        font-size: 0.9rem;
+        color: #667eea;
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+
+    .option-description {
+        font-size: 0.8rem;
+        color: #888;
+    }
+
+    .option-check {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #ddd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .option-item.selected .option-check {
+        background: #667eea;
+        border-color: #667eea;
+    }
+
+    .check-mark {
+        color: white;
+        font-size: 1rem;
+        font-weight: bold;
+    }
+
+    .navigation-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .nav-btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 25px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .prev-btn {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+    }
+
+    .prev-btn:hover:not(:disabled) {
+        background: #667eea;
+        color: white;
+        transform: translateX(-3px);
+    }
+
+    .prev-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .next-btn {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .next-btn:hover {
+        transform: translateX(3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .results-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        padding: 20px;
+    }
+
+    .results-card {
+        background: white;
+        border-radius: 30px;
+        max-width: 600px;
+        width: 100%;
+        padding: 40px;
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+    }
+
+    .results-title {
+        font-size: 1.8rem;
+        color: #333;
+        margin: 0;
+    }
+
+    .close-btn {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .close-btn:hover {
+        background: #e0e0e0;
+        transform: rotate(90deg);
+    }
+
+    .total-price-section {
+        text-align: center;
+        padding: 30px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 20px;
+        color: white;
+        margin-bottom: 30px;
+    }
+
+    .total-label {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 10px;
+    }
+
+    .total-price {
+        font-size: 2.5rem;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .total-note {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    .details-section {
+        margin-bottom: 30px;
+    }
+
+    .details-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 1.2rem;
+    }
+
+    .services-list {
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .service-item {
+        padding: 15px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .service-category {
+        display: block;
+        font-weight: 600;
+        color: #667eea;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+    }
+
+    .service-options {
+        padding-left: 15px;
+    }
+
+    .service-option-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+    }
+
+    .service-name {
+        color: #666;
+    }
+
+    .service-price {
+        color: #667eea;
+        font-weight: 600;
+    }
+
+    .contact-section {
+        text-align: center;
+    }
+
+    .contact-text {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .contact-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .contact-btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 25px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .contact-btn.primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .contact-btn.secondary {
+        background: #f0f0f0;
+        color: #667eea;
+    }
+
+    .contact-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .question-card {
+            padding: 25px;
+        }
+
+        .question-title {
+            font-size: 1.4rem;
+        }
+
+        .contact-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+
+@code {
+    private List<Question> questions = new();
+    private int CurrentQuestionIndex = 0;
+    private Dictionary<Question, List<ServiceOption>> selectedOptions = new();
+    private bool showResults = false;
+
+    protected override void OnInitialized()
+    {
+        InitializeQuestions();
+        InitializeSelections();
+    }
+
+    private void InitializeQuestions()
+    {
+        questions = new List<Question>
+        {
+            new Question
+            {
+                Id = 1,
+                Title = "Какие услуги вам нужны?",
+                Description = "Выберите услуги, которые вас интересуют",
+                Icon = "🎬",
+                AllowMultiple = true, // Разрешаем множественный выбор
+                Options = new List<ServiceOption>
+                {
+                    new ServiceOption { Name = "Видеомонтаж", Price = 5000, Icon = "✂️", Description = "Профессиональный монтаж видео любой сложности" },
+                    new ServiceOption { Name = "Озвучка", Price = 3000, Icon = "🎙️", Description = "Профессиональная озвучка голосом" },
+                    new ServiceOption { Name = "Анимация", Price = 8000, Icon = "🎨", Description = "2D/3D анимация, motion design" },
+                    new ServiceOption { Name = "Сценарий", Price = 4000, Icon = "📝", Description = "Написание сценария для видео" },
+                }
+            },
+            new Question
+            {
+                Id = 2,
+                Title = "Срок выполнения",
+                Description = "Укажите желаемые сроки выполнения проекта",
+                Icon = "⏱️",
+                AllowMultiple = false, // Только один выбор
+                Options = new List<ServiceOption>
+                {
+                    new ServiceOption { Name = "Срочно (1-2 дня)", Price = 5000, Icon = "🔥", Description = "Ускоренная обработка +50% к стоимости" },
+                    new ServiceOption { Name = "Стандартно (3-5 дней)", Price = 0, Icon = "📅", Description = "Стандартный срок выполнения" },
+                    new ServiceOption { Name = "Обычно (5-7 дней)", Price = -1000, Icon = "🐢", Description = "Скидка за спокойный режим" }
+                }
+            },
+            new Question
+            {
+                Id = 3,
+                Title = "Сложность проекта",
+                Description = "Оцените сложность вашего проекта",
+                Icon = "⚙️",
+                AllowMultiple = false, // Только один выбор
+                Options = new List<ServiceOption>
+                {
+                    new ServiceOption { Name = "Простой", Price = 0, Icon = "😊", Description = "Базовая обработка, минимум правок" },
+                    new ServiceOption { Name = "Средний", Price = 3000, Icon = "👍", Description = "Стандартные требования к качеству" },
+                    new ServiceOption { Name = "Сложный", Price = 7000, Icon = "🎯", Description = "Высокие требования, много деталей" },
+                    new ServiceOption { Name = "Премиум", Price = 12000, Icon = "💎", Description = "Максимальное качество, много правок" }
+                }
+            },
+            new Question
+            {
+                Id = 4,
+                Title = "Дополнительные услуги",
+                Description = "Выберите дополнительные опции (можно несколько)",
+                Icon = "✨",
+                AllowMultiple = true, // Разрешаем множественный выбор
+                Options = new List<ServiceOption>
+                {
+                    new ServiceOption { Name = "Цветокоррекция", Price = 2000, Icon = "🎨", Description = "Профессиональная цветокоррекция" },
+                    new ServiceOption { Name = "Звуковой дизайн", Price = 2500, Icon = "🔊", Description = "Создание звукового сопровождения" },
+                    new ServiceOption { Name = "Субтитры", Price = 1500, Icon = "📝", Description = "Добавление субтитров" },
+                    new ServiceOption { Name = "Перевод", Price = 3000, Icon = "🌍", Description = "Перевод на другие языки" }
+                }
+            }
+        };
+    }
+
+    private void InitializeSelections()
+    {
+        foreach (var question in questions)
+        {
+            selectedOptions[question] = new List<ServiceOption>();
+        }
+    }
+
+    private Question? CurrentQuestion => CurrentQuestionIndex < questions.Count ? questions[CurrentQuestionIndex] : null;
+
+    private int CurrentProgress => (CurrentQuestionIndex + 1) * 100 / questions.Count;
+
+    private bool IsOptionSelected(ServiceOption option)
+    {
+        if (CurrentQuestion == null) return false;
+        
+        var currentSelections = selectedOptions[CurrentQuestion];
+        return currentSelections.Contains(option);
+    }
+
+    private void SelectOption(ServiceOption option)
+    {
+        if (CurrentQuestion == null) return;
+        
+        var currentSelections = selectedOptions[CurrentQuestion];
+        
+        if (CurrentQuestion.AllowMultiple)
+        {
+            // Множественный выбор: добавляем или удаляем опцию
+            if (currentSelections.Contains(option))
+            {
+                currentSelections.Remove(option);
+            }
+            else
+            {
+                currentSelections.Add(option);
+            }
+        }
+        else
+        {
+            // Одиночный выбор: очищаем и добавляем новую опцию
+            currentSelections.Clear();
+            currentSelections.Add(option);
+        }
+        
+        // Принудительно обновляем UI
+        StateHasChanged();
+    }
+
+    private void NextQuestion()
+    {
+        if (CurrentQuestionIndex < questions.Count - 1)
+        {
+            CurrentQuestionIndex++;
+        }
+        else
+        {
+            CalculateTotal();
+        }
+    }
+
+    private void PreviousQuestion()
+    {
+        if (CurrentQuestionIndex > 0)
+        {
+            CurrentQuestionIndex--;
+        }
+    }
+
+    private int TotalPrice
+    {
+        get
+        {
+            int total = 0;
+            foreach (var selection in selectedOptions)
+            {
+                foreach (var option in selection.Value)
+                {
+                    total += option.Price;
+                }
+            }
+            return total > 0 ? total : 0;
+        }
+    }
+
+    private List<QuestionSelection> allSelectedOptions
+    {
+        get
+        {
+            var result = new List<QuestionSelection>();
+            foreach (var selection in selectedOptions)
+            {
+                if (selection.Value.Any())
+                {
+                    result.Add(new QuestionSelection
+                    {
+                        QuestionTitle = selection.Key.Title,
+                        SelectedOptions = selection.Value.ToList()
+                    });
+                }
+            }
+            return result;
+        }
+    }
+
+    private void CalculateTotal()
+    {
+        showResults = true;
+    }
+
+    private void CloseResults()
+    {
+        showResults = false;
+    }
+
+    private void ResetCalculator()
+    {
+        InitializeSelections();
+        CurrentQuestionIndex = 0;
+        showResults = false;
+        StateHasChanged();
+    }
+
+    private string FormatPrice(int price)
+    {
+        if (price == 0) return "Включено";
+        if (price < 0) return $"-{Math.Abs(price):N0} ₽";
+        return $"{price:N0} ₽";
+    }
+
+    private class Question
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public bool AllowMultiple { get; set; } = false;
+        public List<ServiceOption> Options { get; set; } = new();
+    }
+
+    private class ServiceOption
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Price { get; set; }
+        public string Icon { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+    }
+
+    private class QuestionSelection
+    {
+        public string QuestionTitle { get; set; } = string.Empty;
+        public List<ServiceOption> SelectedOptions { get; set; } = new();
+    }
+}

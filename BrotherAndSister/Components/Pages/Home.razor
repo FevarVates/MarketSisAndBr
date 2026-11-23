@@ -1,0 +1,568 @@
+﻿@page "/"
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<div class="main-container">
+    <!-- Шапка -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="nav-logo">
+                <h1 class="logo-text">Creative <span class="gradient-text">Duo</span> Studio</h1>
+            </div>
+            <div class="nav-links">
+                <NavLink href="/blog" class="nav-link">Блог</NavLink>
+                <NavLink href="/about" class="nav-link">О нас</NavLink>
+                <NavLink href="/calculator" class="nav-link calculator-link">💰 Рассчитать стоимость</NavLink>
+                <NavLink href="/faq" class="nav-link">FAQ</NavLink>
+                <div class="language-selector">
+                    <button class="lang-btn">🇷🇺 RU</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Основной контент -->
+    <div class="content-wrapper">
+        <!-- Левая часть - Брат -->
+        <div class="half-section left-section"
+             @onmouseover="@(() => SetActiveSection("left"))"
+             @onmouseout="@(() => SetActiveSection(null))"
+             style="@GetLeftSectionStyle()">
+            
+            <div class="section-content left-content">
+                <div class="person-badge">🎙️ АУДИО</div>
+                <div class="person-title">
+                    <h2 class="person-name">Арсений</h2>
+                    <p class="person-role">Звукорежиссёр & Копирайтер</p>
+                </div>
+                
+                <div class="services-list">
+                    <div class="service-item">
+                        <span class="service-icon">🎚️</span>
+                        <span class="service-text">Обработка и чистка звука</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">📝</span>
+                        <span class="service-text">Написание сценариев</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🌐</span>
+                        <span class="service-text">Локализация текстов</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🎵</span>
+                        <span class="service-text">Сведение аудиотреков</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🎙️</span>
+                        <span class="service-text">Звуковой дизайн</span>
+                    </div>
+                </div>
+                
+                <div class="contact-button">
+                    <button class="btn-primary" @onclick="NavigateToPriceAndExample">
+                        Выбрать Арсения →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Правая часть - Сестра -->
+        <div class="half-section right-section"
+             @onmouseover="@(() => SetActiveSection("right"))"
+             @onmouseout="@(() => SetActiveSection(null))"
+             style="@GetRightSectionStyle()">
+            
+            <div class="section-content right-content">
+                <div class="person-badge">🎨 ВИЗУАЛ</div>
+                <div class="person-title">
+                    <h2 class="person-name">Ирина</h2>
+                    <p class="person-role">Дизайнер & Аниматор</p>
+                </div>
+                
+                <div class="services-list">
+                    <div class="service-item">
+                        <span class="service-icon">🎨</span>
+                        <span class="service-text">Моушн-дизайн</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">✨</span>
+                        <span class="service-text">Морфинг в видео</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🖼️</span>
+                        <span class="service-text">Создание превью</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">🎬</span>
+                        <span class="service-text">Работа с видеорядом</span>
+                    </div>
+                    <div class="service-item">
+                        <span class="service-icon">📊</span>
+                        <span class="service-text">Графическая анимация</span>
+                    </div>
+                </div>
+                
+                <div class="contact-button">
+                    <button class="btn-primary" @onclick="NavigateToPriceAndExample">
+                        Выбрать Ирину →
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Декоративный элемент -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+</div>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .main-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        position: relative;
+        overflow-x: hidden;
+    }
+
+    /* Шапка */
+    .header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        animation: slideDown 0.5s ease;
+    }
+
+    .nav-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo-text {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #FFD700, #FF69B4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+    }
+
+    .nav-link {
+        text-decoration: none;
+        color: #666;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .nav-link:hover {
+        color: #667eea;
+    }
+
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+    }
+
+    .nav-link:hover::after {
+        width: 100%;
+    }
+
+    .calculator-link {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        padding: 0.5rem 1.2rem;
+        border-radius: 25px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .calculator-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+
+    .calculator-link::after {
+        display: none;
+    }
+
+    .lang-btn {
+        background: #f0f0f0;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .lang-btn:hover {
+        background: #e0e0e0;
+        transform: scale(1.05);
+    }
+
+    /* Основной контент */
+    .content-wrapper {
+        display: flex;
+        min-height: 100vh;
+        padding-top: 80px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .half-section {
+        transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .left-section {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        position: relative;
+    }
+
+    .left-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>') repeat;
+        opacity: 0.1;
+        animation: float 20s linear infinite;
+    }
+
+    .right-section {
+        background: linear-gradient(135deg, #6b1e3c 0%, #a82a5a 100%);
+        position: relative;
+    }
+
+    .right-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,10 90,30 90,70 50,90 10,70 10,30" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2"/></svg>') repeat;
+        opacity: 0.1;
+        animation: float 15s linear infinite reverse;
+    }
+
+    .section-content {
+        padding: 3rem;
+        text-align: center;
+        color: white;
+        transform: translateY(0);
+        transition: transform 0.3s ease;
+        position: relative;
+        z-index: 2;
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .half-section:hover .section-content {
+        transform: translateY(-10px);
+    }
+
+    .person-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 0.3rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        margin-bottom: 1.5rem;
+        animation: fadeInUp 0.6s ease;
+    }
+
+    .person-name {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        animation: fadeInUp 0.6s ease 0.1s both;
+    }
+
+    .person-role {
+        font-size: 1rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+        animation: fadeInUp 0.6s ease 0.2s both;
+    }
+
+    .services-list {
+        margin: 2rem 0;
+        text-align: left;
+        animation: fadeInUp 0.6s ease 0.3s both;
+    }
+
+    .service-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.8rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        transition: transform 0.3s ease, padding-left 0.3s ease;
+    }
+
+    .service-item:hover {
+        transform: translateX(10px);
+        padding-left: 10px;
+    }
+
+    .service-icon {
+        font-size: 1.5rem;
+        min-width: 40px;
+    }
+
+    .service-text {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+
+    .contact-button {
+        margin-top: 2rem;
+        animation: fadeInUp 0.6s ease 0.4s both;
+    }
+
+    .btn-primary {
+        background: white;
+        color: #667eea;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    /* Плавающие фигуры */
+    .floating-shapes {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .shape {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        animation: float 10s ease-in-out infinite;
+    }
+
+    .shape-1 {
+        width: 100px;
+        height: 100px;
+        top: 20%;
+        left: 10%;
+        animation-duration: 15s;
+    }
+
+    .shape-2 {
+        width: 150px;
+        height: 150px;
+        bottom: 20%;
+        right: 10%;
+        animation-duration: 12s;
+        animation-delay: 2s;
+    }
+
+    .shape-3 {
+        width: 80px;
+        height: 80px;
+        top: 60%;
+        left: 85%;
+        animation-duration: 18s;
+        animation-delay: 1s;
+    }
+
+    /* Анимации */
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0) rotate(0deg);
+        }
+        50% {
+            transform: translateY(-20px) rotate(10deg);
+        }
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .nav-container {
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .nav-links {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .content-wrapper {
+            flex-direction: column;
+            padding-top: 120px;
+        }
+
+        .half-section {
+            min-height: 50vh;
+            width: 100% !important;
+        }
+
+        .person-name {
+            font-size: 2rem;
+        }
+
+        .section-content {
+            padding: 2rem;
+        }
+
+        .service-item {
+            padding: 0.5rem 0;
+        }
+    }
+</style>
+
+@code {
+    private string? activeSection;
+    private double leftWidth = 50;
+    private double rightWidth = 50;
+    private System.Timers.Timer? animationTimer;
+
+    protected override void OnInitialized()
+    {
+        animationTimer = new System.Timers.Timer(16); // ~60 FPS
+        animationTimer.Elapsed += (sender, e) =>
+        {
+            UpdateWidths();
+            InvokeAsync(StateHasChanged);
+        };
+        animationTimer.Start();
+    }
+
+    private void SetActiveSection(string? section)
+    {
+        activeSection = section;
+    }
+
+    private void UpdateWidths()
+    {
+        if (activeSection == "left")
+        {
+            leftWidth = Math.Min(leftWidth + 2, 70);
+            rightWidth = 100 - leftWidth;
+        }
+        else if (activeSection == "right")
+        {
+            rightWidth = Math.Min(rightWidth + 2, 70);
+            leftWidth = 100 - rightWidth;
+        }
+        else
+        {
+            if (Math.Abs(leftWidth - 50) > 0.5)
+            {
+                leftWidth += (50 - leftWidth) * 0.1;
+                rightWidth = 100 - leftWidth;
+            }
+            else
+            {
+                leftWidth = 50;
+                rightWidth = 50;
+            }
+        }
+    }
+
+    private string GetLeftSectionStyle()
+    {
+        return $"width: {leftWidth}%;";
+    }
+
+    private string GetRightSectionStyle()
+    {
+        return $"width: {rightWidth}%;";
+    }
+
+    private void NavigateToPriceAndExample()
+    {
+        NavigationManager.NavigateTo("/priceAndExample");
+    }
+}

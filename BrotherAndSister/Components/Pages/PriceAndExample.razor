@@ -1,0 +1,819 @@
+﻿@page "/priceAndExample"
+@rendermode InteractiveServer
+
+<div class="prices-container">
+    <!-- Hero секция -->
+    <div class="prices-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Наши <span class="gradient-text">услуги</span></h1>
+            <p class="hero-description">Прозрачные цены и понятные сроки. Выбирайте то, что нужно именно вам</p>
+        </div>
+    </div>
+
+    <div class="prices-content">
+        <!-- Услуги -->
+        <div class="services-section">
+            @foreach (var service in Services)
+            {
+                <div class="service-card">
+                    <div class="service-header" @onclick="() => ToggleService(service)">
+                        <div class="service-icon">@GetServiceIcon(service.Name)</div>
+                        <h3 class="service-title">@service.Name</h3>
+                        <div class="service-toggle">
+                            @if (service.IsExpanded)
+                            {
+                                <span>▼</span>
+                            }
+                            else
+                            {
+                                <span>▶</span>
+                            }
+                        </div>
+                    </div>
+                    
+                    @if (service.IsExpanded)
+                    {
+                        <div class="service-content">
+                            <div class="table-container">
+                                <table class="pricing-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Подуслуга</th>
+                                            <th>Срок (дни)</th>
+                                            <th>Цена</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var sub in service.SubServices.OrderBy(s => s.Price))
+                                        {
+                                            <tr>
+                                                <td class="sub-name">@sub.Name</td>
+                                                <td class="sub-days">
+                                                    <span class="days-badge">@sub.EstimatedDays дней</span>
+                                                </td>
+                                                <td class="sub-price">@FormatPrice(sub.Price)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="service-note">
+                                <span class="note-icon">💡</span>
+                                <span>* Цены указаны за базовый объем. Точная стоимость зависит от сложности проекта</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Кнопка расчета -->
+        <div class="calculator-action">
+            <a href="/calculator" class="calculator-btn">
+                <span class="btn-icon">💰</span>
+                Рассчитать стоимость проекта
+                <span class="btn-arrow">→</span>
+            </a>
+        </div>
+
+        <!-- Карусель работ -->
+        <div class="carousel-section">
+            <h2 class="section-title">Примеры <span class="gradient-text">наших работ</span></h2>
+            <p class="section-subtitle">Посмотрите, что мы создаем для наших клиентов</p>
+            
+            <div class="carousel-container">
+                <button class="carousel-btn prev-btn" @onclick="PrevSlide" disabled="@(currentSlide == 0)">
+                    ←
+                </button>
+                
+                <div class="carousel-track" style="transform: translateX(-@(currentSlide * 100)%)">
+                    @foreach (var work in exampleWorks)
+                    {
+                        <div class="carousel-slide">
+                            <div class="work-card">
+                                <div class="work-image">
+                                    <img src="@work.ImageUrl" alt="@work.Title" />
+                                    <div class="work-overlay">
+                                        <div class="work-info">
+                                            <h4 class="work-title">@work.Title</h4>
+                                            <p class="work-description">@work.Description</p>
+                                            <div class="work-tags">
+                                                @foreach (var tag in work.Tags)
+                                                {
+                                                    <span class="work-tag">@tag</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                <button class="carousel-btn next-btn" @onclick="NextSlide" disabled="@(currentSlide == exampleWorks.Count - 1)">
+                    →
+                </button>
+            </div>
+            
+            <div class="carousel-dots">
+                @for (int i = 0; i < exampleWorks.Count; i++)
+                {
+                    <div class="dot @(currentSlide == i ? "active" : "")" @onclick="() => GoToSlide(i)"></div>
+                }
+            </div>
+        </div>
+
+        <!-- Преимущества -->
+        <div class="advantages-section">
+            <div class="advantage-item">
+                <div class="advantage-icon">⚡</div>
+                <div class="advantage-text">
+                    <h4>Быстро</h4>
+                    <p>Соблюдаем сроки, указанные в договоре</p>
+                </div>
+            </div>
+            <div class="advantage-item">
+                <div class="advantage-icon">💎</div>
+                <div class="advantage-text">
+                    <h4>Качественно</h4>
+                    <p>Используем профессиональное оборудование</p>
+                </div>
+            </div>
+            <div class="advantage-item">
+                <div class="advantage-icon">🔄</div>
+                <div class="advantage-text">
+                    <h4>Правки</h4>
+                    <p>Бесплатные правки до результата</p>
+                </div>
+            </div>
+            <div class="advantage-item">
+                <div class="advantage-icon">🤝</div>
+                <div class="advantage-text">
+                    <h4>Поддержка</h4>
+                    <p>24/7 на связи с вами</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .prices-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Hero секция */
+    .prices-hero {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 100px 20px 60px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 20px;
+        font-weight: 700;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #FFD700, #FF69B4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        animation: fadeInUp 0.8s ease;
+    }
+
+    /* Основной контент */
+    .prices-content {
+        max-width: 1200px;
+        margin: -40px auto 0;
+        padding: 0 20px 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Услуги */
+    .services-section {
+        margin-bottom: 50px;
+    }
+
+    .service-card {
+        background: white;
+        border-radius: 20px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .service-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .service-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px 25px;
+        cursor: pointer;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        transition: all 0.3s ease;
+    }
+
+    .service-header:hover {
+        background: linear-gradient(135deg, #f0f3ff 0%, #ffffff 100%);
+    }
+
+    .service-icon {
+        font-size: 2rem;
+    }
+
+    .service-title {
+        flex: 1;
+        font-size: 1.3rem;
+        color: #333;
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .service-toggle {
+        font-size: 1.2rem;
+        color: #667eea;
+        transition: transform 0.3s ease;
+    }
+
+    .service-content {
+        padding: 0 25px 25px 25px;
+        animation: slideDown 0.3s ease;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+    .pricing-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .pricing-table th {
+        text-align: left;
+        padding: 12px 15px;
+        background: #f8f9fa;
+        color: #667eea;
+        font-weight: 600;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .pricing-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #666;
+    }
+
+    .pricing-table tr:hover td {
+        background: #f8f9fa;
+    }
+
+    .sub-name {
+        font-weight: 500;
+        color: #333;
+    }
+
+    .sub-days {
+        width: 120px;
+    }
+
+    .days-badge {
+        background: linear-gradient(135deg, #667eea20, #764ba220);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        color: #667eea;
+    }
+
+    .sub-price {
+        font-weight: 600;
+        color: #764ba2;
+        font-size: 1.1rem;
+    }
+
+    .service-note {
+        background: #f8f9fa;
+        padding: 12px 15px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    .note-icon {
+        font-size: 1.2rem;
+    }
+
+    /* Кнопка расчета */
+    .calculator-action {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .calculator-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 15px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        text-decoration: none;
+        padding: 15px 35px;
+        border-radius: 50px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .calculator-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-icon {
+        font-size: 1.3rem;
+    }
+
+    .btn-arrow {
+        transition: transform 0.3s ease;
+    }
+
+    .calculator-btn:hover .btn-arrow {
+        transform: translateX(5px);
+    }
+
+    /* Карусель */
+    .carousel-section {
+        background: white;
+        border-radius: 30px;
+        padding: 50px;
+        margin-bottom: 40px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-title {
+        font-size: 2rem;
+        color: #333;
+        margin-bottom: 15px;
+    }
+
+    .section-subtitle {
+        color: #666;
+        margin-bottom: 40px;
+        font-size: 1rem;
+    }
+
+    .carousel-container {
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 20px;
+        border-radius: 20px;
+    }
+
+    .carousel-track {
+        display: flex;
+        transition: transform 0.5s ease;
+    }
+
+    .carousel-slide {
+        min-width: 100%;
+        flex-shrink: 0;
+    }
+
+    .work-card {
+        background: #f8f9fa;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .work-image {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+    }
+
+    .work-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .work-card:hover .work-image img {
+        transform: scale(1.1);
+    }
+
+    .work-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(118, 75, 162, 0.95));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        padding: 20px;
+    }
+
+    .work-card:hover .work-overlay {
+        opacity: 1;
+    }
+
+    .work-info {
+        text-align: center;
+        color: white;
+    }
+
+    .work-title {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+    }
+
+    .work-description {
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+        line-height: 1.5;
+    }
+
+    .work-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .work-tag {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+    }
+
+    .carousel-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.9);
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #667eea;
+    }
+
+    .carousel-btn:hover:not(:disabled) {
+        background: white;
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .carousel-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .prev-btn {
+        left: 20px;
+    }
+
+    .next-btn {
+        right: 20px;
+    }
+
+    .carousel-dots {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ddd;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .dot:hover {
+        background: #667eea;
+    }
+
+    .dot.active {
+        width: 30px;
+        border-radius: 5px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    /* Преимущества */
+    .advantages-section {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-top: 40px;
+    }
+
+    .advantage-item {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+    .advantage-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .advantage-icon {
+        font-size: 2rem;
+        margin-bottom: 15px;
+    }
+
+    .advantage-text h4 {
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .advantage-text p {
+        font-size: 0.85rem;
+        color: #666;
+        line-height: 1.4;
+    }
+
+    /* Анимации */
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .advantages-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .service-header {
+            padding: 15px 20px;
+        }
+
+        .service-title {
+            font-size: 1.1rem;
+        }
+
+        .service-icon {
+            font-size: 1.5rem;
+        }
+
+        .carousel-section {
+            padding: 30px;
+        }
+
+        .carousel-btn {
+            width: 35px;
+            height: 35px;
+            font-size: 1.2rem;
+        }
+
+        .pricing-table th,
+        .pricing-table td {
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+    }
+</style>
+
+@code {
+    private int currentSlide = 0;
+
+    private List<Service> Services = new();
+
+    private List<ExampleWork> exampleWorks = new()
+    {
+        new ExampleWork
+        {
+            Title = "Корпоративный ролик",
+            Description = "Динамичный видеоролик для крупной компании",
+            ImageUrl = "https://via.placeholder.com/800x450/667eea/ffffff?text=Corporate+Video",
+            Tags = new List<string> { "Видеомонтаж", "Озвучка", "Цветокоррекция" }
+        },
+        new ExampleWork
+        {
+            Title = "Анимационный трейлер",
+            Description = "2D анимация для мобильной игры",
+            ImageUrl = "https://via.placeholder.com/800x450/764ba2/ffffff?text=Animation+Trailer",
+            Tags = new List<string> { "Анимация", "Моушн-дизайн", "Звуковой дизайн" }
+        },
+        new ExampleWork
+        {
+            Title = "Рекламный ролик",
+            Description = "Креативная реклама для бренда одежды",
+            ImageUrl = "https://via.placeholder.com/800x450/ff69b4/ffffff?text=Ad+Video",
+            Tags = new List<string> { "Сценарий", "Монтаж", "Постпродакшн" }
+        },
+        new ExampleWork
+        {
+            Title = "Документальный фильм",
+            Description = "Полный цикл производства документального кино",
+            ImageUrl = "https://via.placeholder.com/800x450/ffd700/333333?text=Documentary",
+            Tags = new List<string> { "Сценарий", "Озвучка", "Монтаж" }
+        }
+    };
+
+    protected override void OnInitialized()
+    {
+        Services = new List<Service>
+        {
+            new Service
+            {
+                Name = "Монтаж видео",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Базовый монтаж (нарезка, склейка)", Price = 1000, EstimatedDays = 4 },
+                    new SubService { Name = "Продвинутый монтаж + эффекты", Price = 2000, EstimatedDays = 7 },
+                    new SubService { Name = "Премиум монтаж + цветокоррекция", Price = 3500, EstimatedDays = 10 },
+                    new SubService { Name = "Полный цикл производства", Price = 5000, EstimatedDays = 14 }
+                }
+            },
+            new Service
+            {
+                Name = "Анимация",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Базовая 2D анимация", Price = 3000, EstimatedDays = 5 },
+                    new SubService { Name = "Сложная 2D анимация", Price = 5000, EstimatedDays = 8 },
+                    new SubService { Name = "3D анимация", Price = 8000, EstimatedDays = 12 },
+                    new SubService { Name = "Моушн-дизайн", Price = 4000, EstimatedDays = 6 }
+                }
+            },
+            new Service
+            {
+                Name = "Озвучка",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Дикторская озвучка", Price = 1500, EstimatedDays = 2 },
+                    new SubService { Name = "Актерская озвучка", Price = 2500, EstimatedDays = 3 },
+                    new SubService { Name = "Звуковой дизайн", Price = 3000, EstimatedDays = 4 },
+                    new SubService { Name = "Сведение аудиотреков", Price = 2000, EstimatedDays = 3 }
+                }
+            },
+            new Service
+            {
+                Name = "Сценарии",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Сценарий для видео (до 5 мин)", Price = 2000, EstimatedDays = 3 },
+                    new SubService { Name = "Сценарий для видео (5-15 мин)", Price = 3500, EstimatedDays = 5 },
+                    new SubService { Name = "Сценарий для фильма", Price = 5000, EstimatedDays = 7 },
+                    new SubService { Name = "Адаптация сценария", Price = 1500, EstimatedDays = 2 }
+                }
+            }
+        };
+    }
+
+    private string GetServiceIcon(string serviceName)
+    {
+        return serviceName switch
+        {
+            "Монтаж видео" => "🎬",
+            "Анимация" => "🎨",
+            "Озвучка" => "🎙️",
+            "Сценарии" => "📝",
+            _ => "✨"
+        };
+    }
+
+    private string FormatPrice(decimal price)
+    {
+        return $"{price:N0} ₽";
+    }
+
+    private void ToggleService(Service service)
+    {
+        service.IsExpanded = !service.IsExpanded;
+    }
+
+    private void NextSlide()
+    {
+        if (currentSlide < exampleWorks.Count - 1)
+        {
+            currentSlide++;
+        }
+    }
+
+    private void PrevSlide()
+    {
+        if (currentSlide > 0)
+        {
+            currentSlide--;
+        }
+    }
+
+    private void GoToSlide(int index)
+    {
+        currentSlide = index;
+    }
+
+    private class SubService
+    {
+        public string Name { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public int EstimatedDays { get; set; }
+    }
+
+    private class Service
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<SubService> SubServices { get; set; } = new();
+        public bool IsExpanded { get; set; } = false;
+    }
+
+    private class ExampleWork
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = new();
+    }
+}

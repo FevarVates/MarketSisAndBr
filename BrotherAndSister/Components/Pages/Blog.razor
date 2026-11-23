@@ -1,0 +1,653 @@
+﻿@page "/blog"
+@rendermode InteractiveServer
+@using System.IO
+@using System.Text
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<div class="blog-container">
+    <!-- Hero секция -->
+    <div class="blog-hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Наш <span class="gradient-text">блог</span></h1>
+            <p class="hero-description">Полезные статьи, советы и инсайты о создании качественного медиаконтента</p>
+        </div>
+    </div>
+
+    <div class="blog-content">
+        <!-- Секция добавления статьи (только для админа) -->
+        @if (isAdmin)
+        {
+            <div class="upload-section">
+                <div class="upload-header">
+                    <span class="upload-icon">📝</span>
+                    <h3>Добавить новую статью</h3>
+                </div>
+                
+                <div class="upload-area" @onclick="TriggerFileInput">
+                    <div class="upload-icon-large">📄</div>
+                    <p>Нажмите для выбора файла .txt</p>
+                    <small>Поддерживаются только текстовые файлы (.txt) в кодировке UTF-8</small>
+                </div>
+                
+                <InputFile id="fileInput" OnChange="HandleFileSelected" style="display: none;" accept=".txt" />
+                
+                @if (isFileSelected && selectedFile != null)
+                {
+                    <div class="file-info">
+                        <span>📄 @selectedFileName</span>
+                        <button class="btn-upload" @onclick="UploadFile">Загрузить статью</button>
+                        <button class="btn-cancel" @onclick="CancelUpload">Отмена</button>
+                    </div>
+                }
+                
+                @if (!string.IsNullOrEmpty(uploadMessage))
+                {
+                    <div class="upload-message @(uploadIsError ? "error" : "success")">
+                        @uploadMessage
+                    </div>
+                }
+            </div>
+        }
+
+        <!-- Список статей -->
+        <div class="articles-section">
+            <div class="section-header">
+                <h2>📚 Все статьи</h2>
+                <span class="articles-count">@articles.Count статей</span>
+            </div>
+            
+            @if (articles.Count == 0)
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>Пока нет статей</h3>
+                    <p>Будьте первым, кто добавит полезную статью в наш блог!</p>
+                </div>
+            }
+            else
+            {
+                <div class="articles-grid">
+                    @foreach (var article in articles.OrderByDescending(a => a.Date))
+                    {
+                        <div class="article-card" @onclick="() => OpenArticle(article.FileName)">
+                            <div class="card-icon">📄</div>
+                            <div class="card-content">
+                                <h3 class="card-title">@article.Title</h3>
+                                <div class="card-meta">
+                                    <span class="card-date">📅 @article.Date.ToString("dd MMMM yyyy")</span>
+                                    <span class="card-read">⏱️ ~@article.ReadTime мин</span>
+                                </div>
+                                <div class="card-read-more">
+                                    Читать статью →
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ... (стили такие же как в предыдущей версии) ... */
+</style>
+
+@code {
+    private IBrowserFile? selectedFile;
+    private string? selectedFileName;
+    private bool isFileSelected = false;
+    private bool isAdmin = true;
+    private string? uploadMessage;
+    private bool uploadIsError;
+    private List<Article> articles = new();
+
+    protected override void OnInitialized()
+    {
+        var dir = Path.Combine(Environment.CurrentDirectory, "wwwroot", "articles");
+        if (Directory.Exists(dir))
+        {
+            var files = Directory.GetFiles(dir);
+            foreach (var file in files)
+            {
+                File.Delete(file);
+            }
+        }
+        LoadArticles(); // обновлять список после очистки
+    }
+
+    private async Task TriggerFileInput()
+    {
+        await JS.InvokeVoidAsync("eval", @"
+            var input = document.getElementById('fileInput');
+            if (input) {
+                input.click();
+            }
+        ");
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        if (e.File != null)
+        {
+            selectedFile = e.File;
+            selectedFileName = selectedFile.Name;
+            isFileSelected = true;
+            uploadMessage = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelUpload()
+    {
+        selectedFile = null;
+        selectedFileName = null;
+        isFileSelected = false;
+        uploadMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task UploadFile()
+    {
+        if (selectedFile == null) return;
+
+        var extension = Path.GetExtension(selectedFile.Name).ToLower();
+        if (extension != ".txt")
+        {
+            uploadMessage = "❌ Поддерживаются только текстовые файлы (.txt)";
+            uploadIsError = true;
+            StateHasChanged();
+            await Task.Delay(3000);
+            uploadMessage = null;
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            var path = Path.Combine(Environment.CurrentDirectory, "wwwroot", "articles");
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
+
+            // Создаем безопасное имя файла (убираем пробелы и спецсимволы)
+            var safeFileName = DateTime.Now.ToString("yyyyMMdd_HHmmss") + "_" + 
+                Path.GetFileNameWithoutExtension(selectedFile.Name)
+                    .Replace(" ", "_")
+                    .Replace("?", "")
+                    .Replace("!", "")
+                    .Replace(".", "")
+                    .Replace(",", "")
+                    .Replace("(", "")
+                    .Replace(")", "") + ".txt";
+            
+            var filePath = Path.Combine(path, safeFileName);
+
+            // Читаем содержимое файла с правильной кодировкой (UTF-8)
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            var content = await reader.ReadToEndAsync();
+            
+            // Сохраняем файл в UTF-8
+            await File.WriteAllTextAsync(filePath, content, Encoding.UTF8);
+
+            // Добавляем статью в список
+            var readTime = CalculateReadTime(content);
+            
+            articles.Add(new Article
+            {
+                Title = Path.GetFileNameWithoutExtension(selectedFile.Name),
+                FileName = safeFileName,
+                Date = DateTime.Now,
+                ReadTime = readTime
+            });
+
+            uploadMessage = "✅ Статья успешно загружена!";
+            uploadIsError = false;
+            
+            // Очистка выбора
+            selectedFile = null;
+            selectedFileName = null;
+            isFileSelected = false;
+
+            StateHasChanged();
+            
+            await Task.Delay(3000);
+            uploadMessage = null;
+            StateHasChanged();
+            
+            // Перезагружаем список
+            await LoadArticles();
+        }
+        catch (Exception ex)
+        {
+            uploadMessage = $"❌ Ошибка загрузки: {ex.Message}";
+            uploadIsError = true;
+            StateHasChanged();
+            await Task.Delay(3000);
+            uploadMessage = null;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadArticles()
+    {
+        articles.Clear();
+        var dir = Path.Combine(Environment.CurrentDirectory, "wwwroot", "articles");
+        if (Directory.Exists(dir))
+        {
+            var files = Directory.GetFiles(dir, "*.txt");
+            foreach (var file in files)
+            {
+                try
+                {
+                    var content = await File.ReadAllTextAsync(file, Encoding.UTF8);
+                    var readTime = CalculateReadTime(content);
+                    
+                    var title = Path.GetFileNameWithoutExtension(file);
+                    // Убираем временную метку из названия
+                    if (title.Length > 17 && title[8] == '_' && title[15] == '_')
+                    {
+                        title = title.Substring(17);
+                    }
+                    title = title.Replace("_", " ");
+                    
+                    articles.Add(new Article
+                    {
+                        Title = title,
+                        FileName = Path.GetFileName(file),
+                        Date = File.GetCreationTime(file),
+                        ReadTime = readTime
+                    });
+                }
+                catch { }
+            }
+        }
+        StateHasChanged();
+    }
+
+    private int CalculateReadTime(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return 1;
+        
+        var wordCount = content.Split(new[] { ' ', '\n', '\r', '\t', '.', ',', '!', '?', ';', ':', '-', '—' }, 
+            StringSplitOptions.RemoveEmptyEntries).Length;
+        
+        return Math.Max(1, (int)Math.Ceiling(wordCount / 200.0));
+    }
+
+    private void OpenArticle(string fileName)
+    {
+        Navigation.NavigateTo($"/article/{Uri.EscapeDataString(fileName)}");
+    }
+
+    private class Article
+    {
+        public string Title { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public DateTime Date { get; set; }
+        public int ReadTime { get; set; }
+    }
+}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .blog-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Hero секция */
+    .blog-hero {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 100px 20px 60px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        color: white;
+        margin-bottom: 20px;
+        font-weight: 700;
+        animation: fadeInDown 0.8s ease;
+    }
+
+    .gradient-text {
+        background: linear-gradient(45deg, #FFD700, #FF69B4);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .hero-description {
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        animation: fadeInUp 0.8s ease;
+    }
+
+    /* Основной контент */
+    .blog-content {
+        max-width: 1200px;
+        margin: -40px auto 0;
+        padding: 0 20px 60px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Секция загрузки */
+    .upload-section {
+        background: white;
+        border-radius: 30px;
+        padding: 30px;
+        margin-bottom: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .upload-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .upload-icon {
+        font-size: 1.5rem;
+    }
+
+    .upload-header h3 {
+        font-size: 1.3rem;
+        color: #333;
+        margin: 0;
+    }
+
+    .upload-area {
+        border: 2px dashed #667eea;
+        border-radius: 20px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+    }
+
+    .upload-area:hover {
+        border-color: #764ba2;
+        background: #f0f3ff;
+        transform: translateY(-3px);
+    }
+
+    .upload-icon-large {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+
+    .upload-area p {
+        color: #667eea;
+        font-size: 1rem;
+        margin-bottom: 5px;
+    }
+
+    .upload-area small {
+        color: #999;
+        font-size: 0.8rem;
+    }
+
+    .file-info {
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .file-info span {
+        color: #667eea;
+        font-weight: 500;
+    }
+
+    .btn-upload {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .btn-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-cancel {
+        background: #e74c3c;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .btn-cancel:hover {
+        background: #c0392b;
+        transform: translateY(-2px);
+    }
+
+    .upload-message {
+        margin-top: 15px;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+
+    .upload-message.success {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .upload-message.error {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    /* Секция статей */
+    .articles-section {
+        background: white;
+        border-radius: 30px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .section-header h2 {
+        font-size: 1.8rem;
+        color: #333;
+        margin: 0;
+    }
+
+    .articles-count {
+        background: #f0f3ff;
+        color: #667eea;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* Сетка статей */
+    .articles-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+    }
+
+    .article-card {
+        background: #f8f9fa;
+        border-radius: 20px;
+        padding: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        gap: 15px;
+        border: 1px solid transparent;
+    }
+
+    .article-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+        background: white;
+    }
+
+    .card-icon {
+        font-size: 2rem;
+        min-width: 50px;
+    }
+
+    .card-content {
+        flex: 1;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        color: #333;
+        margin-bottom: 10px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .card-meta {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        font-size: 0.8rem;
+        color: #999;
+    }
+
+    .card-read {
+        color: #667eea;
+    }
+
+    .card-read-more {
+        font-size: 0.85rem;
+        color: #667eea;
+        font-weight: 500;
+        transition: transform 0.3s ease;
+        display: inline-block;
+    }
+
+    .article-card:hover .card-read-more {
+        transform: translateX(5px);
+    }
+
+    /* Пустое состояние */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.3rem;
+        color: #333;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: #666;
+    }
+
+    /* Анимации */
+    @@keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .hero-title {
+            font-size: 2rem;
+        }
+
+        .blog-content {
+            padding: 0 15px 40px;
+        }
+
+        .articles-section {
+            padding: 25px;
+        }
+
+        .section-header {
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .articles-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .upload-area {
+            padding: 25px;
+        }
+
+        .file-info {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>

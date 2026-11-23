@@ -1,0 +1,383 @@
+﻿@page "/EditPriceAndExample"
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<h2>Услуги</h2>
+
+<!-- Форма для добавления новой услуги -->
+<div class="add-service-form">
+    <h4>Добавить новую услугу</h4>
+    <input placeholder="Имя услуги" @bind="newServiceName" />
+    <button class="btn btn-success" @onclick="AddService">Добавить услугу</button>
+</div>
+
+<!-- Перечень услуг с возможностью редактирования/удаления -->
+@foreach (var service in Services)
+{
+    <div class="service-item">
+        <h3 @onclick="() => ToggleService(service)">
+            @if (service.IsEditingName)
+            {
+                <input @bind="service.EditName" />
+                <button class="btn btn-success btn-sm" @onclick="() => SaveServiceName(service)">Сохранить</button>
+                <button class="btn btn-secondary btn-sm" @onclick="() => CancelEditServiceName(service)">Отмена</button>
+            }
+            else
+            {
+                @service.Name
+                <button class="btn btn-primary btn-sm float-end" @onclick:stopPropagation @onclick="() => EditServiceName(service)">Редактировать</button>
+                <button class="btn btn-danger btn-sm float-end me-2" @onclick="() => RemoveService(service)">Удалить</button>
+            }
+        </h3>
+        <button class="btn btn-primary btn-sm mb-2" @onclick="() => ShowAddSubService(service)">Добавить подуслугу</button>
+        @if (service.IsExpanded)
+        {
+            <!-- Форма для добавления подуслуги -->
+            @if (service.ShowAddSub)
+            {
+                <div class="add-subservice-form">
+                    <input placeholder="Название подуслуги" @bind="service.NewSubName" />
+                    <input type="number" placeholder="Цена" @bind="service.NewSubPrice" />
+                    <input type="number" placeholder="Цена" @bind="service.NewSubEstimatedDays" />
+                    <button class="btn btn-success btn-sm" @onclick="() => AddSubService(service)">Добавить</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="() => service.ShowAddSub = false">Отмена</button>
+                </div>
+            }
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Подуслуга</th>
+                        <th>Цена</th>
+                        <th>Максимум дней</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sub in service.SubServices)
+                    {
+                        <tr>
+                            <td>
+                                @if (sub.IsEditing)
+                                {
+                                    <input @bind="sub.EditName" />
+                                }
+                                else
+                                {
+                                    @sub.Name
+                                }
+                            </td>
+                            <td>
+                                @if (sub.IsEditing)
+                                {
+                                    <input type="number" @bind="sub.EditPrice" />
+                                }
+                                else
+                                {
+                                    @sub.Price.ToString("C")
+                                }
+                            </td>
+                            <td>
+                                @if (sub.IsEditing)
+                                {
+                                    <input type="number" @bind="sub.EditEstimatedDays" min="1" />
+                                }
+                                else
+                                {
+                                    @sub.EstimatedDays
+                                }
+                            </td>
+                            <td>
+                                @if (sub.IsEditing)
+                                {
+                                    <button class="btn btn-success btn-sm" @onclick="() => SaveSubService(sub, service)">Сохранить</button>
+                                    <button class="btn btn-secondary btn-sm" @onclick="() => CancelEditSubService(sub)">Отмена</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-primary btn-sm" @onclick="() => EditSubService(sub)">Редактировать</button>
+                                    <button class="btn btn-danger btn-sm" @onclick="() => RemoveSubService(sub, service)">Удалить</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+<button class="btn btn-primary" @onclick="NavigateToCalculator">Рассчитать стоимость</button>
+
+@code {
+    class SubService
+    {
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+        public int EstimatedDays { get; set; } // Новое свойство для ориентировочного времени (в днях)
+
+        // Поля для редактирования
+        public bool IsEditing { get; set; } = false;
+        public string EditName { get; set; }
+        public decimal EditPrice { get; set; }
+        public int EditEstimatedDays { get; set; } // Для редактирования
+    }
+
+    class Service
+    {
+        public string Name { get; set; }
+        public List<SubService> SubServices { get; set; } = new();
+        public bool IsExpanded { get; set; } = false;
+        public bool IsEditingName { get; set; } = false;
+        public string EditName { get; set; }
+
+        // Для добавления подуслуги
+        public bool ShowAddSub { get; set; } = false;
+        public string NewSubName { get; set; }
+        public decimal NewSubPrice { get; set; }
+        public int NewSubEstimatedDays { get; set; }
+    }
+
+    List<Service> Services = new();
+
+    // Для новой услуги
+    private string newServiceName = "";
+    
+    private void EditServiceName(Service service)
+    {
+        service.IsEditingName = true;
+        service.EditName = service.Name;
+    }
+
+    private void SaveServiceName(Service service)
+    {
+        if (!string.IsNullOrWhiteSpace(service.EditName))
+        {
+            service.Name = service.EditName;
+            service.IsEditingName = false;
+        }
+    }
+
+    private void CancelEditServiceName(Service service)
+    {
+        service.IsEditingName = false;
+    }
+
+    protected override void OnInitialized()
+    {
+        // Изначальные данные
+        Services = new List<Service>
+        {
+            new Service
+            {
+                Name = "Монтаж видео",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Базовый монтаж", Price = 1000, EstimatedDays = 4},
+                    new SubService { Name = "Продвинутый монтаж", Price = 2000, EstimatedDays = 7 },
+                    new SubService { Name = "Премиум монтаж", Price = 3500, EstimatedDays = 10 }
+                }
+            },
+            new Service
+            {
+                Name = "Редактирование фото",
+                SubServices = new List<SubService>
+                {
+                    new SubService { Name = "Минимальная обработка", Price = 500, EstimatedDays = 3},
+                    new SubService { Name = "Полная ретушь", Price = 1500, EstimatedDays = 6 }
+                }
+            }
+        };
+    }
+
+    private void ToggleService(Service service)
+    {
+        service.IsExpanded = !service.IsExpanded;
+    }
+
+    private void NavigateToCalculator()
+    {
+        NavigationManager.NavigateTo("/calculator");
+    }
+
+    // Добавление новой услуги
+    private void AddService()
+    {
+        if (!string.IsNullOrWhiteSpace(newServiceName))
+        {
+            Services.Add(new Service { Name = newServiceName });
+            newServiceName = "";
+        }
+    }
+
+    // Удаление услуги
+    private void RemoveService(Service service)
+    {
+        Services.Remove(service);
+    }
+
+    // Показывать форму добавления подуслуги
+    private void ShowAddSubService(Service service)
+    {
+        service.ShowAddSub = true;
+        // Можно сбросить временные поля
+        service.NewSubName = "";
+        service.NewSubPrice = 0;
+        service.NewSubEstimatedDays = 1;
+    }
+
+    // Добавить подуслугу
+    private void AddSubService(Service service)
+    {
+        if (!string.IsNullOrWhiteSpace(service.NewSubName) && service.NewSubPrice > 0 && service.NewSubEstimatedDays > 0)
+        {
+            service.SubServices.Add(new SubService
+            {
+                Name = service.NewSubName,
+                Price = service.NewSubPrice,
+                EstimatedDays = service.NewSubEstimatedDays
+            });
+            // Сброс данных формы
+            service.ShowAddSub = false;
+            service.NewSubName = "";
+            service.NewSubPrice = 0;
+            service.NewSubEstimatedDays = 1;
+        }
+    }
+
+    // Редактировать подуслугу
+    private void EditSubService(SubService sub)
+    {
+        sub.IsEditing = true;
+        sub.EditName = sub.Name;
+        sub.EditPrice = sub.Price;
+        sub.EditEstimatedDays = sub.EstimatedDays;
+    }
+
+    // Отменить редактирование
+    private void CancelEditSubService(SubService sub)
+    {
+        sub.IsEditing = false;
+    }
+
+    // Сохранить изменения подуслуги
+    private void SaveSubService(SubService sub, Service service)
+    {
+        if (!string.IsNullOrWhiteSpace(sub.EditName) && sub.EditPrice > 0 && sub.EditEstimatedDays > 0)
+        {
+            sub.Name = sub.EditName;
+            sub.Price = sub.EditPrice;
+            sub.EstimatedDays = sub.EditEstimatedDays;
+            sub.IsEditing = false;
+        }
+    }
+
+    // Удаление подуслуги
+    private void RemoveSubService(SubService sub, Service service)
+    {
+        service.SubServices.Remove(sub);
+    }
+}
+
+<style>
+    /* Общие стили страницы */
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f9; /* Светлый фон */
+        color: #333;
+        margin: 20px;
+        line-height: 1.6;
+    }
+    
+    /* Заголовки страницы */
+    h2 {
+        text-align: center;
+        color: #2c3e50;
+        margin-bottom: 30px;
+    }
+    
+    /* Стиль блока услуги */
+    .service-item {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        padding: 15px;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .service-item:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+    
+    /* Заголовок услуги */
+    h3 {
+        cursor: pointer;
+        margin: 0;
+        font-size: 1.4em;
+        color: #34495e;
+        padding: 10px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        transition: background-color 0.2s, color 0.2s;
+    }
+    
+    h3:hover {
+        background-color: #d4dde7;
+        color: #222;
+    }
+    
+    /* Таблица с ценами */
+    .table {
+        width: 100%;
+        margin-top: 10px;
+        border-collapse: collapse;
+        font-size: 1em;
+    }
+    
+    .table th, .table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        color: #555;
+        text-align: left;
+    }
+    
+    .table tr:hover {
+        background-color: #f1f1f1;
+    }
+    
+    /* Кнопка рассчёта */
+    button {
+        display: block;
+        width: 250px;
+        margin: 30px auto;
+        padding: 12px 25px;
+        font-size: 1.2em;
+        color: #fff;
+        background-color: #007bff;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    button:hover {
+            background-color: #0056b3;
+        }
+    
+    /* Адаптивность */
+    media(max-width: 768px) {
+        body {
+            margin: 10px;
+            padding: 0 10px;
+        }
+    
+        button {
+            width: 100%;
+            font-size: 1em;
+        }
+    }
+</style>

@@ -1,0 +1,164 @@
+﻿@page "/EditFaq"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+<h1>Часто задаваемые вопросы</h1>
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <!-- Отображение списка вопросов -->
+        <ul class="list-group">
+            @foreach(var item in faqs)
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                    <div style="max-width: calc(100% - 120px);">
+                        @if (item.IsEditing)
+                        {
+                            <InputText class="form-control mb-2" @bind-Value="item.EditableQuestion" />
+                            <InputText class="form-control" @bind-Value="item.EditableAnswer" />
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-success me-2" @onclick="@(() => SaveQuestion(item))">Сохранить</button>
+                                <button class="btn btn-sm btn-secondary" @onclick="@(() => CancelEdit(item))">Отменить</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <span style="cursor:pointer" @onclick="@(() => ToggleAnswer(item))">@item.Question</span>
+                        }
+                    </div>
+                    @if (!item.IsEditing)
+                    {
+                        <div class="d-flex flex-column align-items-center">
+                            <button class="btn btn-outline-primary btn-sm mb-1" @onclick="@(() => EditQuestion(item))">Редактировать</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="@(() => DeleteQuestion(item.Id))">Удалить</button>
+                        </div>
+                    }
+                </li>
+                <div class="collapse @(item.IsExpanded ? "show" : "")" style="transition: max-height 0.5s ease, opacity 0.5s ease;">
+                    <p class="mt-2 mb-0 text-muted"><strong>Ответ:</strong> @item.Answer</p>
+                </div>
+            }
+        </ul>
+        
+        <!-- Форма добавления нового вопроса -->
+        <hr />
+        <h3>Добавление нового вопроса</h3>
+        <EditForm Model="@newFaq" OnValidSubmit="@AddNewFaq">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="mb-3">
+                <label for="questionInput" class="form-label">Вопрос:</label>
+                <InputText id="questionInput" class="form-control" @bind-Value="newFaq.Question" />
+            </div>
+
+            <div class="mb-3">
+                <label for="answerInput" class="form-label">Ответ:</label>
+                <InputText id="answerInput" class="form-control" @bind-Value="newFaq.Answer" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private List<FaqItem> faqs = new();
+    private FaqItem newFaq = new();
+
+    public class FaqItem
+    {
+        public int Id { get; set; }
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;   
+        public bool IsExpanded { get; set; } = false;
+
+        // Для редактирования
+        public bool IsEditing { get; set; } = false;
+        public string EditableQuestion { get; set; } = string.Empty;
+        public string EditableAnswer { get; set; } = string.Empty;
+    }
+    
+    protected override void OnInitialized()
+    {
+        faqs.AddRange(new[] {
+            new FaqItem {Id = 1, Question = "Что такое Blazor?", Answer = "Blazor — фреймворк для разработки веб-приложений."},
+            new FaqItem {Id = 2, Question = "Какие преимущества Blazor?", Answer = "Преимущества включают работу на .NET Core, производительность и доступность серверных решений"}
+        });
+    }
+
+    private void AddNewFaq()
+    {
+        if (string.IsNullOrWhiteSpace(newFaq.Question) || string.IsNullOrWhiteSpace(newFaq.Answer))
+        {
+            return;
+        }
+
+        int maxId = faqs.Any() ? faqs.Max(x => x.Id) : 0;
+        newFaq.Id = maxId + 1;
+        faqs.Add(newFaq);
+        newFaq = new();
+        StateHasChanged();
+    }
+
+    private void ToggleAnswer(FaqItem item)
+    {
+        foreach (var i in faqs)
+        {
+            if (i != item)
+                i.IsExpanded = false;
+        }
+        item.IsExpanded = !item.IsExpanded;
+        StateHasChanged();
+    }
+
+    private void DeleteQuestion(int questionId)
+    {
+        faqs.RemoveAll(q => q.Id == questionId);
+        StateHasChanged();
+    }
+
+    private void EditQuestion(FaqItem item)
+    {
+        item.IsEditing = true;
+        item.EditableQuestion = item.Question;
+        item.EditableAnswer = item.Answer;
+    }
+
+    private void SaveQuestion(FaqItem item)
+    {
+        item.Question = item.EditableQuestion;
+        item.Answer = item.EditableAnswer;
+        item.IsEditing = false;
+        StateHasChanged();
+    }
+
+    private void CancelEdit(FaqItem item)
+    {
+        item.IsEditing = false;
+    }
+}
+
+<style>
+/* Анимация плавного появления слайда слева */
+.animation-slide-in-left {
+    transition: all 0.3s ease-out;
+    transform: translateX(-10px);
+    opacity: 0;
+}
+.animation-slide-in-left.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+/* Анимация плавного раскрытия */
+.collapse {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, opacity 0.5s ease;
+    opacity: 0;
+}
+.collapse.show {
+    max-height: 500px; /* или достаточно большой максимум */
+    opacity: 1;
+}
+
+</style>

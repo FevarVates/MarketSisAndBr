@@ -1,0 +1,642 @@
+﻿@page "/article/{FileName}"
+@using System.Text
+@rendermode InteractiveServer
+
+<div class="article-container-page">
+    <!-- Hero секция -->
+    <div class="article-hero">
+        <div class="hero-content">
+            <div class="breadcrumb">
+                <a href="/blog" class="breadcrumb-link">← Блог</a>
+                <span class="breadcrumb-separator">/</span>
+                <span class="breadcrumb-current">Статья</span>
+            </div>
+            <h1 class="hero-title">@ArticleTitle</h1>
+            <div class="article-meta">
+                <span class="meta-date">📅 @GetFormattedDate()</span>
+                <span class="meta-read-time">⏱️ ~@GetReadTime() мин чтения</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="article-content-wrapper">
+        <div class="article-container">
+            @if (!string.IsNullOrEmpty(Content))
+            {
+                <div class="article-body">
+                    @foreach (var paragraph in Content.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var formattedParagraph = paragraph
+                            .Replace("\r\n", "<br/>")
+                            .Replace("\n", "<br/>")
+                            .Replace("  ", " &nbsp;");
+                        
+                        <p>@((MarkupString)formattedParagraph)</p>
+                    }
+                </div>
+            }
+            else if (isLoading)
+            {
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Загрузка статьи...</p>
+                </div>
+            }
+            else
+            {
+                <div class="error-message">
+                    <span class="error-icon">⚠️</span>
+                    <p>Статья не найдена или произошла ошибка при загрузке.</p>
+                    <a href="/blog" class="back-to-blog">← Вернуться к списку статей</a>
+                </div>
+            }
+        </div>
+
+        <!-- Боковая панель -->
+        <div class="article-sidebar">
+            <div class="sidebar-card">
+                <h3>📖 О статье</h3>
+                <div class="sidebar-info">
+                    <div class="info-item">
+                        <span class="info-label">Автор:</span>
+                        <span class="info-value">Creative Duo Studio</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Дата публикации:</span>
+                        <span class="info-value">@GetFormattedDate()</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Время чтения:</span>
+                        <span class="info-value">~@GetReadTime() минут</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>🔗 Поделиться</h3>
+                <div class="share-buttons">
+                    <button class="share-btn telegram" @onclick="ShareOnTelegram">
+                        📨 Telegram
+                    </button>
+                    <button class="share-btn vk" @onclick="ShareOnVK">
+                        📱 VK
+                    </button>
+                    <button class="share-btn copy" @onclick="CopyLink">
+                        🔗 Копировать ссылку
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>💡 Полезные ссылки</h3>
+                <div class="useful-links">
+                    <a href="/calculator" class="useful-link">
+                        <span>💰</span>
+                        <span>Рассчитать стоимость проекта</span>
+                    </a>
+                    <a href="/priceAndExample" class="useful-link">
+                        <span>🎬</span>
+                        <span>Посмотреть портфолио</span>
+                    </a>
+                    <a href="/about" class="useful-link">
+                        <span>👥</span>
+                        <span>О нас</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(notificationMessage))
+    {
+        <div class="notification">
+            @notificationMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string FileName { get; set; } = string.Empty;
+    
+    [Inject]
+    private IWebHostEnvironment Environment { get; set; } = null!;
+    
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+    
+    [Inject]
+    private IJSRuntime JS { get; set; } = null!;
+
+    private string? Content;
+    private string ArticleTitle = string.Empty;
+    private string? notificationMessage;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadArticle();
+    }
+
+    private async Task LoadArticle()
+    {
+        isLoading = true;
+        
+        try
+        {
+            var decodedFileName = Uri.UnescapeDataString(FileName);
+            var path = Path.Combine(Environment.WebRootPath, "articles", decodedFileName);
+            
+            if (File.Exists(path))
+            {
+                // Читаем файл в UTF-8
+                Content = await File.ReadAllTextAsync(path, Encoding.UTF8);
+                
+                // Формируем название статьи из имени файла
+                var title = Path.GetFileNameWithoutExtension(decodedFileName);
+                // Убираем временную метку из названия если она есть
+                if (title.Length > 17 && title[8] == '_' && title[15] == '_')
+                {
+                    title = title.Substring(17);
+                }
+                ArticleTitle = title.Replace("_", " ");
+                
+                // Делаем первую букву заглавной
+                if (!string.IsNullOrEmpty(ArticleTitle))
+                {
+                    ArticleTitle = char.ToUpper(ArticleTitle[0]) + ArticleTitle[1..];
+                }
+            }
+            else
+            {
+                Content = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Ошибка загрузки статьи: {ex.Message}");
+            Content = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private string GetFormattedDate()
+    {
+        try
+        {
+            var decodedFileName = Uri.UnescapeDataString(FileName);
+            var path = Path.Combine(Environment.WebRootPath, "articles", decodedFileName);
+            if (File.Exists(path))
+            {
+                var fileInfo = new FileInfo(path);
+                return fileInfo.CreationTime.ToString("dd MMMM yyyy");
+            }
+        }
+        catch { }
+        
+        return DateTime.Now.ToString("dd MMMM yyyy");
+    }
+
+    private int GetReadTime()
+    {
+        if (string.IsNullOrEmpty(Content)) return 1;
+        
+        var plainText = System.Text.RegularExpressions.Regex.Replace(Content, "<[^>]*>", "");
+        var wordCount = plainText.Split(new[] { ' ', '\n', '\r', '\t', '.', ',', '!', '?', ';', ':', '-', '—' }, 
+            StringSplitOptions.RemoveEmptyEntries).Length;
+        
+        var minutes = Math.Max(1, (int)Math.Ceiling(wordCount / 200.0));
+        return minutes;
+    }
+
+    private async void ShareOnTelegram()
+    {
+        var url = $"https://t.me/share/url?url={Uri.EscapeDataString(NavigationManager.Uri)}&text={Uri.EscapeDataString(ArticleTitle)}";
+        NavigationManager.NavigateTo(url, forceLoad: true);
+    }
+
+    private async void ShareOnVK()
+    {
+        var url = $"https://vk.com/share.php?url={Uri.EscapeDataString(NavigationManager.Uri)}&title={Uri.EscapeDataString(ArticleTitle)}";
+        NavigationManager.NavigateTo(url, forceLoad: true);
+    }
+
+    private async void CopyLink()
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", NavigationManager.Uri);
+        notificationMessage = "✅ Ссылка скопирована!";
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(2000);
+        notificationMessage = null;
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    .article-container-page {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Hero секция */
+    .article-hero {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 80px 20px 50px;
+        text-align: center;
+        backdrop-filter: blur(10px);
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .breadcrumb {
+        margin-bottom: 20px;
+        font-size: 0.9rem;
+    }
+
+    .breadcrumb-link {
+        color: rgba(255, 255, 255, 0.8);
+        text-decoration: none;
+        transition: color 0.3s ease;
+    }
+
+    .breadcrumb-link:hover {
+        color: white;
+    }
+
+    .breadcrumb-separator {
+        color: rgba(255, 255, 255, 0.5);
+        margin: 0 8px;
+    }
+
+    .breadcrumb-current {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+        color: white;
+        margin-bottom: 20px;
+        font-weight: 700;
+        animation: fadeInDown 0.8s ease;
+        line-height: 1.3;
+    }
+
+    .article-meta {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        animation: fadeInUp 0.8s ease;
+    }
+
+    .meta-date, .meta-read-time {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 12px;
+        border-radius: 20px;
+        backdrop-filter: blur(5px);
+    }
+
+    /* Основной контент */
+    .article-content-wrapper {
+        max-width: 1200px;
+        margin: -30px auto 0;
+        padding: 0 20px 60px;
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 40px;
+    }
+
+    .article-container {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .article-body {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #444;
+    }
+
+    .article-body h1 {
+        font-size: 2rem;
+        color: #333;
+        margin: 1.5em 0 0.5em;
+        padding-bottom: 0.3em;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .article-body h2 {
+        font-size: 1.5rem;
+        color: #444;
+        margin: 1.3em 0 0.5em;
+    }
+
+    .article-body h3 {
+        font-size: 1.2rem;
+        color: #555;
+        margin: 1em 0 0.5em;
+    }
+
+    .article-body p {
+        margin-bottom: 1em;
+    }
+
+    .article-body ul, .article-body ol {
+        margin: 1em 0;
+        padding-left: 2em;
+    }
+
+    .article-body li {
+        margin-bottom: 0.5em;
+    }
+
+    .article-body blockquote {
+        border-left: 4px solid #667eea;
+        padding-left: 20px;
+        margin: 1.5em 0;
+        font-style: italic;
+        color: #666;
+    }
+
+    .article-body code {
+        background: #f4f4f4;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.9em;
+    }
+
+    .article-body pre {
+        background: #2d2d2d;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1.5em 0;
+    }
+
+    .article-body pre code {
+        background: none;
+        padding: 0;
+    }
+
+    .article-body img {
+        max-width: 100%;
+        border-radius: 12px;
+        margin: 1.5em 0;
+    }
+
+    .article-body a {
+        color: #667eea;
+        text-decoration: none;
+        border-bottom: 1px solid transparent;
+        transition: border-color 0.3s ease;
+    }
+
+    .article-body a:hover {
+        border-bottom-color: #667eea;
+    }
+
+    /* Загрузка */
+    .loading-spinner {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Боковая панель */
+    .article-sidebar {
+        position: sticky;
+        top: 100px;
+        align-self: start;
+    }
+
+    .sidebar-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+
+    .sidebar-card:hover {
+        transform: translateY(-5px);
+    }
+
+    .sidebar-card h3 {
+        font-size: 1.2rem;
+        color: #333;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+    }
+
+    .sidebar-info {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+    }
+
+    .info-label {
+        color: #999;
+    }
+
+    .info-value {
+        color: #667eea;
+        font-weight: 500;
+    }
+
+    /* Кнопки поделиться */
+    .share-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .share-btn {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+    .share-btn.telegram {
+        background: #0088cc;
+        color: white;
+    }
+
+    .share-btn.telegram:hover {
+        background: #006699;
+        transform: translateX(5px);
+    }
+
+    .share-btn.vk {
+        background: #4c75a3;
+        color: white;
+    }
+
+    .share-btn.vk:hover {
+        background: #3a5a80;
+        transform: translateX(5px);
+    }
+
+    .share-btn.copy {
+        background: #667eea;
+        color: white;
+    }
+
+    .share-btn.copy:hover {
+        background: #5a67d8;
+        transform: translateX(5px);
+    }
+
+    /* Полезные ссылки */
+    .useful-links {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .useful-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        text-decoration: none;
+        color: #667eea;
+        transition: all 0.3s ease;
+    }
+
+    .useful-link:hover {
+        background: #667eea;
+        color: white;
+        transform: translateX(5px);
+    }
+
+    .useful-link span:first-child {
+        font-size: 1.2rem;
+    }
+
+    /* Уведомление */
+    .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4caf50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        animation: slideInRight 0.3s ease;
+        z-index: 1000;
+        font-size: 0.9rem;
+    }
+
+    keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    /* Анимации */
+    keyframes fadeInDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Адаптивность */
+    media (max-width: 768px) {
+        .hero-title {
+            font-size: 1.8rem;
+        }
+
+        .article-content-wrapper {
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .article-sidebar {
+            position: static;
+        }
+
+        .article-container {
+            padding: 25px;
+        }
+
+        .article-meta {
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-card {
+            margin-bottom: 20px;
+        }
+    }
+</style>
